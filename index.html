@@ -36,11 +36,14 @@
         
         const controls = new OrbitControls(camera, renderer.domElement);
         
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
         scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(1, 1, 1);
-        scene.add(dirLight);
+        const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight1.position.set(1, 1, 1);
+        scene.add(dirLight1);
+        const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+        dirLight2.position.set(-1, -1, -1);
+        scene.add(dirLight2);
 
         const loader = new Rhino3dmLoader();
         loader.setLibraryPath('https://cdn.jsdelivr.net/npm/rhino3dm@8.4.0/');
@@ -59,12 +62,22 @@
             const buffer = await file.arrayBuffer();
             
             loader.parse(buffer, (object) => {
+                object.traverse(child => {
+                    if (child.isMesh && !child.material) {
+                        child.material = new THREE.MeshNormalMaterial();
+                    }
+                });
+                
                 scene.add(object);
                 // Auto-fit camera
                 const box = new THREE.Box3().setFromObject(object);
                 const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                camera.position.set(center.x, center.y, center.z + maxDim * 2);
                 camera.lookAt(center);
-                controls.target.copy(center);
+                controls.target.set(center.x, center.y, center.z);
+                controls.update();
                 alert('Model loaded!');
             }, (error) => {
                 console.error(error);

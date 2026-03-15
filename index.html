@@ -605,6 +605,22 @@
             if (renderer && scene && camera) renderer.render(scene, camera);
         }
 
+        function buildDownloadUrl(shareUrl) {
+            // SharePoint / firemní OneDrive
+            if (shareUrl.includes('sharepoint.com')) {
+                const url = new URL(shareUrl);
+                url.searchParams.set('download', '1');
+                return url.toString();
+            }
+            // Osobní OneDrive (1drv.ms nebo onedrive.live.com)
+            if (shareUrl.includes('1drv.ms') || shareUrl.includes('onedrive.live.com')) {
+                const encoded = btoa(shareUrl).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                return `https://api.onedrive.com/v1.0/shares/u!${encoded}/root/content`;
+            }
+            // Fallback - zkus přímo
+            return shareUrl;
+        }
+
         async function loadModel(url, type) {
             console.log("🚀 Viewer spuštěn, URL: " + url);
             initThree();
@@ -624,19 +640,18 @@
             }
 
             try {
-                let downloadUrl = url;
-                
-                // OneDrive Logic
-                if (url.includes('1drv.ms') || url.includes('onedrive.live.com') || url.includes('sharepoint.com')) {
-                    const base64Url = btoa(url).replace(/\//g, '_').replace(/\+/g, '-').replace(/=/g, '');
-                    downloadUrl = `https://api.onedrive.com/v1.0/shares/u!${base64Url}/root/content`;
-                }
+                const downloadUrl = buildDownloadUrl(url);
 
-                console.log("📡 Začínám fetch URL...");
-                const response = await fetch(downloadUrl, { mode: 'cors' });
+                console.log("📡 Začínám fetch URL: " + downloadUrl);
+                const response = await fetch(downloadUrl, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
                 console.log("✅ Fetch odpověď: " + response.status + " " + response.url);
                 
-                if (!response.ok) throw new Error('Fetch failed with status ' + response.status);
+                if (response.status !== 200) {
+                    throw new Error(`Soubor nelze načíst (status: ${response.status}). Zkontroluj že je odkaz sdílen jako „Kdokoli s odkazem“ — včetně lidí mimo organizaci.`);
+                }
                 
                 const buffer = await response.arrayBuffer();
                 console.log("📦 ArrayBuffer získán, velikost: " + buffer.byteLength + " bytů");
@@ -684,7 +699,7 @@
                 console.error("❌ Catch error:", err);
                 loadingOverlay.style.display = 'none';
                 errorOverlay.style.display = 'flex';
-                errorText.innerHTML = `<span style="color: #ff4444; font-size: 1.2rem; font-weight: bold;">Chyba sítě/přístupu:</span><br>${err.message}`;
+                errorText.innerHTML = `<span style="color: #ff4444; font-size: 1.2rem; font-weight: bold;">Chyba:</span><br>${err.message}`;
                 lucide.createIcons();
             }
         }

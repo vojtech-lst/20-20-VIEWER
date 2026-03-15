@@ -505,16 +505,12 @@
                     <input type="text" id="file-name" required placeholder="Např. Hlavní model">
                 </div>
                 <div class="form-group">
-                    <label for="file-url">URL (OneDrive share link) *</label>
-                    <input type="url" id="file-url" required placeholder="https://..." oninput="app.autoDetectFileType()">
+                    <label for="localFile">Vybrat soubor (.3dm, .skp) *</label>
+                    <input type="file" id="localFile" accept=".3dm,.skp" required />
                 </div>
-                <div class="form-group">
-                    <label for="file-type">Typ souboru</label>
-                    <select id="file-type">
-                        <option value="3dm">Rhino (.3dm)</option>
-                        <option value="skp">SketchUp (.skp)</option>
-                    </select>
-                </div>
+                <!-- Skryté původní pole -->
+                <input type="hidden" id="file-url" value="local" />
+                <input type="hidden" id="file-type" value="3dm" />
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="app.closeModals()">Zrušit</button>
                     <button type="submit" class="btn btn-primary">Přidat</button>
@@ -704,8 +700,68 @@
             }
         }
 
-        // Expose to global app
-        window.init3DViewer = loadModel;
+        async function loadModelFromBuffer(buffer, filename) {
+            initThree();
+            
+            const loadingOverlay = document.getElementById('viewer-loading');
+            const errorOverlay = document.getElementById('viewer-error');
+            const skpOverlay = document.getElementById('viewer-skp-notice');
+            
+            loadingOverlay.style.display = 'flex';
+            errorOverlay.style.display = 'none';
+            skpOverlay.style.display = 'none';
+
+            if (currentModel) {
+                scene.remove(currentModel);
+                currentModel = null;
+            }
+
+            const extension = filename.split('.').pop().toLowerCase();
+            
+            if (extension === 'skp') {
+                loadingOverlay.style.display = 'none';
+                skpOverlay.style.display = 'flex';
+                lucide.createIcons();
+                return;
+            }
+
+            // Rhino3dmLoader
+            loader.parse(buffer, (object) => {
+                currentModel = object;
+                scene.add(object);
+
+                // Auto-fit camera
+                const box = new THREE.Box3().setFromObject(object);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const fov = camera.fov * (Math.PI / 180);
+                let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+                cameraZ *= 1.5; // Zoom out a bit
+
+                camera.position.set(center.x + cameraZ, center.y + cameraZ, center.z + cameraZ);
+                camera.lookAt(center);
+                controls.target.copy(center);
+                controls.update();
+
+                loadingOverlay.style.display = 'none';
+                lucide.createIcons();
+            }, (error) => {
+                loadingOverlay.style.display = 'none';
+                errorOverlay.style.display = 'flex';
+                document.getElementById('error-text').innerHTML = `<span style="color: #ff4444; font-size: 1.2rem; font-weight: bold;">Chyba loaderu:</span><br>${error.message || error}`;
+                lucide.createIcons();
+            });
+        }
+
+        document.getElementById('localFile').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const buffer = await file.arrayBuffer();
+            loadModelFromBuffer(buffer, file.name);
+        });
+
+        window.loadModelFromBuffer = loadModelFromBuffer;
     </script>
 
     <script>

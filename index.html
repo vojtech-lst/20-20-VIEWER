@@ -1,7 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="cs">
 <head>
-    <title>Minimal 3D Viewer Test</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>20-20-Viewer</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script type="importmap">
       { "imports": {
         "three": "https://cdn.jsdelivr.net/npm/three@0.166.0/build/three.module.js",
@@ -9,81 +12,1260 @@
       }}
     </script>
     <style>
-        body { margin: 0; overflow: hidden; }
-        #viewer { width: 100vw; height: 100vh; display: block; }
-        #fileInput { position: absolute; top: 10px; left: 10px; z-index: 10; }
+        :root {
+            --bg-color: #ffffff;
+            --header-bg: #ffcc00;
+            --card-bg: rgba(255, 204, 0, 0.1);
+            --accent-color: #000000;
+            --text-primary: #000000;
+            --text-secondary: #4b5563;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --danger-color: #dc2626;
+            --success-color: #16a34a;
+            --transition-speed: 0.3s;
+            --toolbar-height: 48px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Layout */
+        header {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            background-color: var(--header-bg);
+            color: #000000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #000000;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all var(--transition-speed) ease;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background-color: #000000;
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background-color: #333333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: #000000;
+            border: 1px solid #000000;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-icon {
+            padding: 0.5rem;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.05);
+            color: #000000;
+        }
+
+        .btn-icon:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-danger {
+            color: var(--danger-color);
+        }
+
+        .btn-danger:hover {
+            background: rgba(220, 38, 38, 0.1);
+        }
+
+        /* Views */
+        .view {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .view.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Dashboard - Grid */
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .project-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            transition: all var(--transition-speed) ease;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .project-card:hover {
+            border-color: rgba(0, 0, 0, 0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .project-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .project-meta {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .project-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: auto;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px dashed var(--border-color);
+        }
+
+        /* Project View - Table */
+        .project-header-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .project-info-edit {
+            flex-grow: 1;
+        }
+
+        .project-title-input {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            font-weight: 700;
+            width: 100%;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .project-title-input:focus {
+            outline: 1px solid #000000;
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .project-desc-input {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            width: 100%;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .project-desc-input:focus {
+            outline: 1px solid #000000;
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .file-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .file-list th {
+            text-align: left;
+            padding: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .file-list td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .file-row:hover {
+            background: var(--card-bg);
+        }
+
+        .file-type-icon {
+            color: #000000;
+            display: flex;
+            align-items: center;
+        }
+
+        .file-url {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Viewer View */
+        #view-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+        }
+
+        #view-viewer.active {
+            display: flex;
+        }
+
+        .viewer-toolbar {
+            height: var(--toolbar-height);
+            background: #111;
+            color: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+            z-index: 10;
+            border-bottom: 1px solid #333;
+        }
+
+        .toolbar-section {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .toolbar-title {
+            font-size: 0.85rem;
+            font-weight: 500;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .toolbar-btn {
+            background: transparent;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            min-width: 36px;
+            min-height: 36px;
+        }
+
+        .toolbar-btn:hover {
+            color: #fff;
+            background: #222;
+        }
+
+        .toolbar-btn.active {
+            color: var(--header-bg);
+            background: #222;
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 20px;
+            background: #333;
+        }
+
+        #viewer-container {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #viewer-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .viewer-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            z-index: 5;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid var(--header-bg);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal {
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal h2 {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            background: #f9fafb;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #000000;
+        }
+
+        .error-msg {
+            color: var(--danger-color);
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            :root {
+                --toolbar-height: 56px;
+            }
+
+            .header-content {
+                padding: 0.75rem 1rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .project-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .project-card {
+                padding: 1rem;
+            }
+
+            .file-list th:nth-child(3), .file-list td:nth-child(3) {
+                display: none;
+            }
+
+            .toolbar-title {
+                display: none;
+            }
+
+            .toolbar-btn span {
+                display: none;
+            }
+
+            .toolbar-section {
+                gap: 0.25rem;
+            }
+
+            .modal {
+                padding: 1.5rem;
+                width: 95%;
+                margin: 10px;
+            }
+
+            .project-title-input {
+                font-size: 1.25rem;
+            }
+
+            .project-header-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo {
+                font-size: 1.2rem;
+                letter-spacing: 1px;
+            }
+            
+            .btn {
+                padding: 0.5rem 0.8rem;
+                font-size: 0.85rem;
+            }
+
+            .file-list th, .file-list td {
+                padding: 0.75rem 0.5rem;
+            }
+        }
     </style>
 </head>
 <body>
-    <input type="file" id="fileInput" accept=".3dm">
-    <canvas id="viewer"></canvas>
+    <!-- DASHBOARD VIEW -->
+    <div id="view-dashboard" class="view active">
+        <header>
+            <div class="header-content">
+                <div class="logo" onclick="window.app.showDashboard()">20-20-Viewer</div>
+                <button class="btn btn-primary" onclick="window.app.openNewProjectModal()">
+                    <i data-lucide="plus"></i> Nový projekt
+                </button>
+            </div>
+        </header>
+        <div class="container">
+            <div id="project-list" class="project-grid">
+                <!-- Projects will be rendered here -->
+            </div>
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <p>Zatím žádné projekty. Vytvořte první.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROJECT VIEW -->
+    <div id="view-project" class="view">
+        <header>
+            <div class="header-content">
+                <button class="btn btn-secondary" onclick="window.app.showDashboard()">
+                    <i data-lucide="arrow-left"></i> Zpět
+                </button>
+                <button class="btn btn-primary" onclick="window.app.openAddFileModal()">
+                    <i data-lucide="file-plus"></i> Přidat soubor
+                </button>
+            </div>
+        </header>
+        <div class="container">
+            <div class="project-header-row">
+                <div class="project-info-edit">
+                    <input type="text" id="edit-project-name" class="project-title-input" placeholder="Název projektu" onchange="app.updateProjectInfo()">
+                    <input type="text" id="edit-project-desc" class="project-desc-input" placeholder="Popis projektu (volitelné)" onchange="app.updateProjectInfo()">
+                </div>
+            </div>
+            <table class="file-list">
+                <thead>
+                    <tr>
+                        <th width="40">Typ</th>
+                        <th>Název / Popis</th>
+                        <th>URL</th>
+                        <th width="150">Akce</th>
+                    </tr>
+                </thead>
+                <tbody id="file-list-body">
+                    <!-- Files will be rendered here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- VIEWER VIEW -->
+    <div id="view-viewer" class="view">
+        <div class="viewer-toolbar">
+            <div class="toolbar-section">
+                <div id="viewer-filename" class="toolbar-title">Model</div>
+            </div>
+            <div class="toolbar-section">
+                <button class="toolbar-btn active" id="mode-solid" onclick="viewer.setMode('solid')">
+                    <i data-lucide="square"></i> <span>Solid</span>
+                </button>
+                <button class="toolbar-btn" id="mode-white" onclick="viewer.setMode('white')">
+                    <i data-lucide="box"></i> <span>White</span>
+                </button>
+                <button class="toolbar-btn" id="mode-wire" onclick="viewer.setMode('wire')">
+                    <i data-lucide="grid"></i> <span>Wire</span>
+                </button>
+            </div>
+            <div class="toolbar-section">
+                <button class="toolbar-btn" onclick="viewer.resetCamera()" title="Reset (F)">
+                    <i data-lucide="home"></i>
+                </button>
+                <button class="toolbar-btn" onclick="viewer.toggleFullscreen()" title="Fullscreen">
+                    <i data-lucide="maximize"></i>
+                </button>
+                <button class="toolbar-btn" id="btn-walk" onclick="viewer.toggleWalkMode()" title="Walk Mode">
+                    <i data-lucide="footprints"></i>
+                </button>
+                <div class="toolbar-divider"></div>
+                <button class="toolbar-btn" onclick="window.app.showProject(window.app.currentProjectId)" title="Zpět">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+        </div>
+        <div id="viewer-container">
+            <canvas id="viewer-canvas"></canvas>
+            <div id="viewer-loading" class="viewer-overlay" style="display: none;">
+                <div class="spinner"></div>
+                <p>Načítám 3D model...</p>
+            </div>
+            <div id="viewer-error" class="viewer-overlay" style="display: none;">
+                <i data-lucide="alert-circle" style="width: 48px; height: 48px; color: var(--danger-color); margin-bottom: 1rem;"></i>
+                <p id="error-message">Chyba při načítání modelu.</p>
+                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="window.app.showProject(window.app.currentProjectId)">Zavřít</button>
+            </div>
+            <div id="walk-overlay" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); padding: 8px 16px; border-radius: 20px; color: white; font-size: 0.8rem; display: none; pointer-events: none;">
+                W,S,A,D = Pohyb | Myš = Rozhlížení | ESC = Konec
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div id="modal-project" class="modal-overlay">
+        <div class="modal">
+            <h2 id="modal-project-title">Nový projekt</h2>
+            <form id="form-project" onsubmit="window.app.handleProjectSubmit(event)">
+                <div class="form-group">
+                    <label for="project-name">Název projektu *</label>
+                    <input type="text" id="project-name" placeholder="Např. Vila v Praze" oninput="document.getElementById('project-name-error').style.display = 'none'">
+                    <div id="project-name-error" class="error-msg">Název projektu je povinný.</div>
+                </div>
+                <div class="form-group">
+                    <label for="project-description">Popis</label>
+                    <textarea id="project-description" rows="3" placeholder="Stručný popis projektu..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="window.app.closeModals()">Zrušit</button>
+                    <button type="submit" class="btn btn-primary">Uložit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-file" class="modal-overlay">
+        <div class="modal">
+            <h2>Přidat soubor</h2>
+            <form id="form-file" onsubmit="window.app.handleFileSubmit(event)">
+                <div class="form-group">
+                    <label for="file-name">Název souboru *</label>
+                    <input type="text" id="file-name" required placeholder="Např. Hlavní model">
+                </div>
+                <div class="form-group">
+                    <label for="file-input">Vybrat Rhino soubor (.3dm) *</label>
+                    <input type="file" id="file-input" accept=".3dm" required>
+                </div>
+                <!-- Hidden URL logic for later -->
+                <div class="form-group" style="display: none;">
+                    <label for="file-url">URL</label>
+                    <input type="url" id="file-url" placeholder="https://...">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="window.app.closeModals()">Zrušit</button>
+                    <button type="submit" class="btn btn-primary">Přidat</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-confirm" class="modal-overlay">
+        <div class="modal">
+            <h2>Smazat projekt?</h2>
+            <p id="confirm-msg" style="margin-bottom: 1.5rem; color: var(--text-secondary);"></p>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="window.app.closeModals()">Zrušit</button>
+                <button type="button" class="btn btn-primary btn-danger" id="confirm-delete-btn" style="background-color: var(--danger-color); color: white;">Smazat</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { Rhino3dmLoader } from 'three/addons/loaders/3DMLoader.js';
 
-        // Setup scene
-        const canvas = document.getElementById('viewer');
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x222222);
-        
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000);
-        camera.position.set(100, 100, 100);
-        
-        const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        
-        const controls = new OrbitControls(camera, renderer.domElement);
-        
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
-        scene.add(ambientLight);
-        const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight1.position.set(1, 1, 1);
-        scene.add(dirLight1);
-        const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
-        dirLight2.position.set(-1, -1, -1);
-        scene.add(dirLight2);
+        class IntegratedViewer {
+            constructor() {
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.controls = null;
+                this.loader = null;
+                this.model = null;
+                this.mode = 'solid'; // solid, white, wire
+                this.isWalkMode = false;
+                
+                // Walk mode state
+                this.moveState = { forward: 0, right: 0 };
+                this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
+                this.walkSpeed = 5.0;
+                this.lookSpeed = 0.002;
 
-        const loader = new Rhino3dmLoader();
-        loader.setLibraryPath('https://cdn.jsdelivr.net/npm/rhino3dm@8.4.0/');
+                this.init();
+            }
 
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update();
-            renderer.render(scene, camera);
-        }
-        animate();
+            init() {
+                const canvas = document.getElementById('viewer-canvas');
+                const container = document.getElementById('viewer-container');
 
-        document.getElementById('fileInput').addEventListener('change', async (e) => {
-            alert('File selected! Loading model...');
-            const file = e.target.files[0];
-            if (!file) return;
-            const buffer = await file.arrayBuffer();
-            
-            loader.parse(buffer, (object) => {
-                object.traverse(child => {
-                    if (child.isMesh && !child.material) {
-                        child.material = new THREE.MeshNormalMaterial();
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x111111);
+
+                this.camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 10000);
+                this.camera.position.set(100, 100, 100);
+
+                this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+                this.renderer.setSize(container.clientWidth, container.clientHeight);
+                this.renderer.setPixelRatio(window.devicePixelRatio);
+
+                this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+                this.scene.add(ambientLight);
+
+                const topLight = new THREE.DirectionalLight(0xffffff, 0.6);
+                topLight.position.set(0, 100, 0);
+                this.scene.add(topLight);
+
+                const leftLight = new THREE.DirectionalLight(0xffffff, 0.6);
+                leftLight.position.set(-100, 50, 100);
+                this.scene.add(leftLight);
+
+                const rightLight = new THREE.DirectionalLight(0xffffff, 0.6);
+                rightLight.position.set(100, 50, -100);
+                this.scene.add(rightLight);
+
+                this.loader = new Rhino3dmLoader();
+                this.loader.setLibraryPath('https://cdn.jsdelivr.net/npm/rhino3dm@8.4.0/');
+
+                window.addEventListener('resize', () => this.onResize());
+                window.addEventListener('keydown', (e) => this.onKeyDown(e));
+                window.addEventListener('keyup', (e) => this.onKeyUp(e));
+                document.addEventListener('mousemove', (e) => this.onMouseMove(e));
+                document.addEventListener('pointerlockchange', () => this.onPointerLockChange());
+
+                this.animate();
+            }
+
+            onResize() {
+                const container = document.getElementById('viewer-container');
+                if (!container) return;
+                this.camera.aspect = container.clientWidth / container.clientHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+
+            async loadFile(file) {
+                const loading = document.getElementById('viewer-loading');
+                const error = document.getElementById('viewer-error');
+                const filename = document.getElementById('viewer-filename');
+                
+                loading.style.display = 'flex';
+                error.style.display = 'none';
+                filename.textContent = file.name;
+
+                if (this.model) {
+                    this.scene.remove(this.model);
+                    this.model = null;
+                }
+
+                try {
+                    const buffer = await file.arrayBuffer();
+                    this.loader.parse(buffer, (object) => {
+                        this.model = object;
+                        this.applyMaterials();
+                        this.scene.add(this.model);
+                        this.resetCamera();
+                        loading.style.display = 'none';
+                        lucide.createIcons();
+                    }, (err) => {
+                        console.error(err);
+                        loading.style.display = 'none';
+                        error.style.display = 'flex';
+                        document.getElementById('error-message').textContent = "Chyba při zpracování Rhino souboru.";
+                    });
+                } catch (err) {
+                    console.error(err);
+                    loading.style.display = 'none';
+                    error.style.display = 'flex';
+                }
+            }
+
+            applyMaterials() {
+                if (!this.model) return;
+                this.model.traverse(child => {
+                    if (child.isMesh) {
+                        if (this.mode === 'white') {
+                            child.material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+                        } else if (this.mode === 'wire') {
+                            child.material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+                        } else {
+                            // Solid - keep original or use fallback
+                            if (!child.userData.originalMaterial) {
+                                child.userData.originalMaterial = child.material.clone();
+                            }
+                            child.material = child.userData.originalMaterial;
+                        }
                     }
                 });
-                
-                scene.add(object);
-                // Auto-fit camera
-                const box = new THREE.Box3().setFromObject(object);
+            }
+
+            setMode(mode) {
+                this.mode = mode;
+                document.querySelectorAll('.toolbar-btn[id^="mode-"]').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(`mode-${mode}`).classList.add('active');
+                this.applyMaterials();
+            }
+
+            resetCamera() {
+                if (!this.model) return;
+                const box = new THREE.Box3().setFromObject(this.model);
                 const center = box.getCenter(new THREE.Vector3());
                 const size = box.getSize(new THREE.Vector3());
                 const maxDim = Math.max(size.x, size.y, size.z);
-                camera.position.set(center.x, center.y, center.z + maxDim * 2);
-                camera.lookAt(center);
-                controls.target.set(center.x, center.y, center.z);
-                controls.update();
-                alert('Model loaded!');
-            }, (error) => {
-                console.error(error);
-                alert('Error loading model: ' + error.message);
-            });
-        });
+                
+                this.camera.position.set(center.x + maxDim, center.y + maxDim, center.z + maxDim);
+                this.camera.lookAt(center);
+                this.controls.target.copy(center);
+                this.controls.update();
+            }
+
+            toggleFullscreen() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+
+            toggleWalkMode() {
+                if (this.isWalkMode) {
+                    document.exitPointerLock();
+                } else {
+                    this.renderer.domElement.requestPointerLock();
+                }
+            }
+
+            onPointerLockChange() {
+                this.isWalkMode = document.pointerLockElement === this.renderer.domElement;
+                this.controls.enabled = !this.isWalkMode;
+                document.getElementById('btn-walk').classList.toggle('active', this.isWalkMode);
+                document.getElementById('walk-overlay').style.display = this.isWalkMode ? 'block' : 'none';
+                
+                if (this.isWalkMode) {
+                    this.euler.setFromQuaternion(this.camera.quaternion);
+                }
+            }
+
+            onMouseMove(e) {
+                if (!this.isWalkMode) return;
+                this.euler.y -= e.movementX * this.lookSpeed;
+                this.euler.x -= e.movementY * this.lookSpeed;
+                this.euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.euler.x));
+                this.camera.quaternion.setFromEuler(this.euler);
+            }
+
+            onKeyDown(e) {
+                if (e.code === 'KeyF') this.resetCamera();
+                if (e.code === 'Escape' && this.isWalkMode) document.exitPointerLock();
+
+                if (!this.isWalkMode) return;
+                if (e.code === 'KeyW') this.moveState.forward = 1;
+                if (e.code === 'KeyS') this.moveState.forward = -1;
+                if (e.code === 'KeyA') this.moveState.right = -1;
+                if (e.code === 'KeyD') this.moveState.right = 1;
+            }
+
+            onKeyUp(e) {
+                if (!this.isWalkMode) return;
+                if (e.code === 'KeyW' || e.code === 'KeyS') this.moveState.forward = 0;
+                if (e.code === 'KeyA' || e.code === 'KeyD') this.moveState.right = 0;
+            }
+
+            updateWalk(delta) {
+                if (!this.isWalkMode) return;
+                
+                const direction = new THREE.Vector3();
+                const front = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+                const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+                
+                // Keep movement on horizontal plane
+                front.y = 0;
+                right.y = 0;
+                front.normalize();
+                right.normalize();
+
+                if (this.moveState.forward !== 0) {
+                    direction.addScaledVector(front, this.moveState.forward);
+                }
+                if (this.moveState.right !== 0) {
+                    direction.addScaledVector(right, this.moveState.right);
+                }
+
+                if (direction.length() > 0) {
+                    direction.normalize();
+                    this.camera.position.addScaledVector(direction, this.walkSpeed * delta);
+                }
+            }
+
+            animate() {
+                const clock = new THREE.Clock();
+                const tick = () => {
+                    const delta = clock.getDelta();
+                    requestAnimationFrame(tick);
+                    
+                    if (this.isWalkMode) {
+                        this.updateWalk(delta);
+                    } else {
+                        this.controls.update();
+                    }
+                    
+                    this.renderer.render(this.scene, this.camera);
+                };
+                tick();
+            }
+        }
+
+        window.viewer = new IntegratedViewer();
+    </script>
+
+    <script>
+        class ViewerApp {
+            constructor() {
+                this.projects = JSON.parse(localStorage.getItem('viewer20_projects')) || [];
+                this.currentProjectId = null;
+                this.editingProjectId = null;
+                this.projectToDeleteId = null;
+                this.init();
+            }
+
+            init() {
+                this.renderProjects();
+                if (window.lucide) window.lucide.createIcons();
+            }
+
+            save() {
+                localStorage.setItem('viewer20_projects', JSON.stringify(this.projects));
+            }
+
+            // Navigation
+            showDashboard() {
+                this.switchView('view-dashboard');
+                this.renderProjects();
+            }
+
+            showProject(id) {
+                this.currentProjectId = id;
+                const project = this.projects.find(p => p.id === id);
+                if (!project) return;
+
+                document.getElementById('edit-project-name').value = project.name;
+                document.getElementById('edit-project-desc').value = project.description || '';
+                
+                this.switchView('view-project');
+                this.renderFiles();
+            }
+
+            showViewer(fileId) {
+                const project = this.projects.find(p => p.id === this.currentProjectId);
+                const file = project.files.find(f => f.id === fileId);
+                if (!file) return;
+
+                this.switchView('view-viewer');
+                
+                if (file.localFile) {
+                    if (window.viewer) {
+                        window.viewer.loadFile(file.localFile);
+                    } else {
+                        // Fallback if viewer is somehow not ready
+                        setTimeout(() => {
+                            if (window.viewer) window.viewer.loadFile(file.localFile);
+                        }, 100);
+                    }
+                } else {
+                    document.getElementById('viewer-error').style.display = 'flex';
+                    document.getElementById('error-message').textContent = "Lokální soubor není k dispozici (vyberte jej znovu v projektu).";
+                }
+            }
+
+            switchView(viewId) {
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                setTimeout(() => {
+                    document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+                    const target = document.getElementById(viewId);
+                    if (target) {
+                        target.style.display = 'flex';
+                        setTimeout(() => {
+                            target.classList.add('active');
+                            if (window.lucide) window.lucide.createIcons();
+                            if (viewId === 'view-viewer' && window.viewer) {
+                                window.viewer.onResize();
+                            }
+                        }, 50);
+                    }
+                }, 300);
+            }
+
+            // Project Logic
+            openNewProjectModal() {
+                this.editingProjectId = null;
+                document.getElementById('modal-project-title').textContent = 'Nový projekt';
+                document.getElementById('form-project').reset();
+                document.getElementById('project-name-error').style.display = 'none';
+                this.showModal('modal-project');
+            }
+
+            openEditProjectModal(id, event) {
+                event.stopPropagation();
+                this.editingProjectId = id;
+                const project = this.projects.find(p => p.id === id);
+                document.getElementById('modal-project-title').textContent = 'Upravit projekt';
+                document.getElementById('project-name').value = project.name;
+                document.getElementById('project-description').value = project.description || '';
+                document.getElementById('project-name-error').style.display = 'none';
+                this.showModal('modal-project');
+            }
+
+            handleProjectSubmit(e) {
+                e.preventDefault();
+                const nameInput = document.getElementById('project-name');
+                const name = nameInput.value.trim();
+                const errorMsg = document.getElementById('project-name-error');
+
+                if (!name) {
+                    errorMsg.style.display = 'block';
+                    nameInput.focus();
+                    return;
+                }
+                errorMsg.style.display = 'none';
+
+                const description = document.getElementById('project-description').value;
+                const now = new Date().toISOString();
+
+                if (this.editingProjectId) {
+                    const index = this.projects.findIndex(p => p.id === this.editingProjectId);
+                    this.projects[index].name = name;
+                    this.projects[index].description = description;
+                    this.projects[index].modified = now;
+                } else {
+                    const newProject = {
+                        id: Date.now().toString(),
+                        name,
+                        description,
+                        created: now,
+                        modified: now,
+                        files: []
+                    };
+                    this.projects.push(newProject);
+                }
+
+                this.save();
+                this.closeModals();
+                this.renderProjects();
+            }
+
+            confirmDeleteProject(id, event) {
+                event.stopPropagation();
+                this.projectToDeleteId = id;
+                const project = this.projects.find(p => p.id === id);
+                document.getElementById('confirm-msg').textContent = `Opravdu smazat projekt ${project.name}? Tato akce je nevratná.`;
+                document.getElementById('confirm-delete-btn').onclick = () => this.executeDeleteProject();
+                this.showModal('modal-confirm');
+            }
+
+            executeDeleteProject() {
+                if (this.projectToDeleteId) {
+                    this.projects = this.projects.filter(p => p.id !== this.projectToDeleteId);
+                    this.save();
+                    this.closeModals();
+                    this.renderProjects();
+                    this.projectToDeleteId = null;
+                }
+            }
+
+            updateProjectInfo() {
+                const project = this.projects.find(p => p.id === this.currentProjectId);
+                if (project) {
+                    project.name = document.getElementById('edit-project-name').value;
+                    project.description = document.getElementById('edit-project-desc').value;
+                    project.modified = new Date().toISOString();
+                    this.save();
+                }
+            }
+
+            // File Logic
+            openAddFileModal() {
+                document.getElementById('form-file').reset();
+                this.showModal('modal-file');
+            }
+
+            handleFileSubmit(e) {
+                e.preventDefault();
+                const name = document.getElementById('file-name').value;
+                const fileInput = document.getElementById('file-input');
+                const file = fileInput.files[0];
+
+                if (!file) return;
+
+                const projectIndex = this.projects.findIndex(p => p.id === this.currentProjectId);
+                const newFile = {
+                    id: Date.now().toString(),
+                    name,
+                    type: '3dm',
+                    localFile: file
+                };
+
+                this.projects[projectIndex].files.push(newFile);
+                this.projects[projectIndex].modified = new Date().toISOString();
+                
+                this.save();
+                this.closeModals();
+                this.renderFiles();
+            }
+
+            deleteFile(fileId) {
+                if (confirm('Opravdu chcete smazat tento soubor?')) {
+                    const projectIndex = this.projects.findIndex(p => p.id === this.currentProjectId);
+                    this.projects[projectIndex].files = this.projects[projectIndex].files.filter(f => f.id !== fileId);
+                    this.projects[projectIndex].modified = new Date().toISOString();
+                    this.save();
+                    this.renderFiles();
+                }
+            }
+
+            // Rendering
+            renderProjects() {
+                const list = document.getElementById('project-list');
+                const empty = document.getElementById('empty-state');
+                if (!list) return;
+                list.innerHTML = '';
+
+                if (this.projects.length === 0) {
+                    empty.style.display = 'block';
+                    return;
+                }
+                empty.style.display = 'none';
+
+                this.projects.sort((a, b) => new Date(b.modified) - new Date(a.modified)).forEach(p => {
+                    const date = new Date(p.modified).toLocaleDateString('cs-CZ');
+                    const card = document.createElement('div');
+                    card.className = 'project-card';
+                    card.onclick = () => window.app.showProject(p.id);
+                    card.innerHTML = `
+                        <div>
+                            <h3>${p.name}</h3>
+                            <div class="project-meta">
+                                <span><i data-lucide="calendar" style="width:12px; height:12px; display:inline; vertical-align:middle;"></i> Upraveno: ${date}</span>
+                                <span><i data-lucide="layers" style="width:12px; height:12px; display:inline; vertical-align:middle;"></i> Souborů: ${p.files.length}</span>
+                            </div>
+                        </div>
+                        <div class="project-actions">
+                            <button class="btn btn-icon" onclick="window.app.openEditProjectModal('${p.id}', event)" title="Upravit">
+                                <i data-lucide="edit-2"></i>
+                            </button>
+                            <button class="btn btn-icon btn-danger" onclick="window.app.confirmDeleteProject('${p.id}', event)" title="Smazat">
+                                <i data-lucide="trash-2"></i>
+                            </button>
+                            <button class="btn btn-secondary" style="margin-left: auto;">Otevřít</button>
+                        </div>
+                    `;
+                    list.appendChild(card);
+                });
+                if (window.lucide) window.lucide.createIcons();
+            }
+
+            renderFiles() {
+                const project = this.projects.find(p => p.id === this.currentProjectId);
+                const tbody = document.getElementById('file-list-body');
+                if (!tbody) return;
+                tbody.innerHTML = '';
+
+                if (project.files.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 3rem; color: var(--text-secondary);">Žádné soubory v projektu.</td></tr>';
+                    return;
+                }
+
+                project.files.forEach(f => {
+                    const row = document.createElement('tr');
+                    row.className = 'file-row';
+                    row.innerHTML = `
+                        <td>
+                            <div class="file-type-icon" title="${f.type.toUpperCase()}">
+                                <i data-lucide="box"></i>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-weight: 600;">${f.name}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">${f.type.toUpperCase()} Model</div>
+                        </td>
+                        <td>
+                            <div class="file-url">${f.localFile ? f.localFile.name : 'Lokální soubor'}</div>
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-secondary btn-icon" onclick="window.app.showViewer('${f.id}')" title="Zobrazit">
+                                    <i data-lucide="eye"></i>
+                                </button>
+                                <button class="btn btn-secondary btn-icon btn-danger" onclick="window.app.deleteFile('${f.id}')" title="Smazat">
+                                    <i data-lucide="trash-2"></i>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                if (window.lucide) window.lucide.createIcons();
+            }
+
+            // Modal Helpers
+            showModal(id) {
+                document.getElementById(id).style.display = 'flex';
+            }
+
+            closeModals() {
+                document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+            }
+        }
+
+        window.app = new ViewerApp();
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal-overlay')) {
+                window.app.closeModals();
+            }
+        }
     </script>
 </body>
 </html>

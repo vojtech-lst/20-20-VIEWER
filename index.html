@@ -875,10 +875,23 @@
                 }
             }
 
-            buildFetchUrl(originalUrl) {
-                // Logic for OneDrive / Proxy discussed earlier
-                // E.g. converting share link to download link or using a proxy
-                return originalUrl;
+            buildFetchUrl(shareUrl) {
+                const PROXY_URL = 'https://sp-proxy.vojtech-e91.workers.dev/';
+                if (
+                    shareUrl.includes('sharepoint.com') ||
+                    shareUrl.includes('onedrive.live.com') ||
+                    shareUrl.includes('1drv.ms')
+                ) {
+                    try {
+                        const u = new URL(shareUrl);
+                        u.searchParams.set('download', '1');
+                        return PROXY_URL + '?url=' + encodeURIComponent(u.toString());
+                    } catch (e) {
+                        console.error("Invalid URL format", e);
+                        return shareUrl;
+                    }
+                }
+                return shareUrl;
             }
 
             async loadFromUrl(url, name) {
@@ -898,7 +911,9 @@
                 try {
                     const fetchUrl = this.buildFetchUrl(url);
                     const response = await fetch(fetchUrl);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    if (!response.ok) {
+                        throw new Error(`Chyba serveru: ${response.status} ${response.statusText}`);
+                    }
                     const buffer = await response.arrayBuffer();
                     
                     this.loader.parse(buffer, (object) => {
@@ -921,7 +936,7 @@
                     console.error(err);
                     loading.style.display = 'none';
                     error.style.display = 'flex';
-                    document.getElementById('error-message').textContent = 'Chyba při stahování modelu z URL.';
+                    document.getElementById('error-message').textContent = `Nepodařilo se stáhnout model z URL. ${err.message || ''}`;
                 }
             }
 

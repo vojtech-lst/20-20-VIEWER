@@ -14,8 +14,8 @@
     <style>
         :root {
             --bg-color: #ffffff;
-            --header-bg: #ffcc00;
-            --card-bg: rgba(255, 204, 0, 0.1);
+            --header-bg: #FAF08F;
+            --card-bg: rgba(250, 240, 143, 0.2);
             --accent-color: #000000;
             --text-primary: #000000;
             --text-secondary: #4b5563;
@@ -30,7 +30,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Antarctican', sans-serif;
         }
 
         body {
@@ -545,16 +545,30 @@
     </style>
 </head>
 <body>
-    <!-- DASHBOARD VIEW -->
-    <div id="view-dashboard" class="view active">
-        <header>
-            <div class="header-content">
-                <div class="logo" onclick="window.app.showDashboard()">20-20-Viewer</div>
+    <header id="main-header">
+        <div class="header-content">
+            <div class="header-left" onclick="window.app.showDashboard()" style="cursor: pointer; display: flex; align-items: center; gap: 0.75rem;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 22V12" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 12L20.5 7" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 12L3.5 7" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" fill="#FAF08F" stroke="#000" stroke-width="2"/>
+                </svg>
+                <div class="logo">20-20-Viewer</div>
+            </div>
+            <div class="header-center" style="font-weight: 500; font-size: 1rem; color: #333;" id="header-center-text">
+                Správa projektů a 3D modelů
+            </div>
+            <div class="header-right" id="header-actions">
                 <button class="btn btn-primary" onclick="window.app.openNewProjectModal()">
                     <i data-lucide="plus"></i> Nový projekt
                 </button>
             </div>
-        </header>
+        </div>
+    </header>
+
+    <!-- DASHBOARD VIEW -->
+    <div id="view-dashboard" class="view active">
         <div class="container">
             <div id="project-list" class="project-grid">
                 <!-- Projects will be rendered here -->
@@ -567,21 +581,21 @@
 
     <!-- PROJECT VIEW -->
     <div id="view-project" class="view">
-        <header>
-            <div class="header-content">
+        <div class="container">
+            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
                 <button class="btn btn-secondary" onclick="window.app.showDashboard()">
                     <i data-lucide="arrow-left"></i> Zpět
                 </button>
-                <button class="btn btn-primary" onclick="window.app.openAddFileModal()">
-                    <i data-lucide="file-plus"></i> Přidat soubor
-                </button>
             </div>
-        </header>
-        <div class="container">
-            <div class="project-header-row">
-                <div class="project-info-edit">
+            <div class="project-header-row" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div class="project-info-edit" style="flex-grow: 1;">
                     <input type="text" id="edit-project-name" class="project-title-input" placeholder="Název projektu" onchange="app.updateProjectInfo()">
                     <input type="text" id="edit-project-desc" class="project-desc-input" placeholder="Popis projektu (volitelné)" onchange="app.updateProjectInfo()">
+                </div>
+                <div class="project-actions-top" style="margin-left: 1rem;">
+                    <button class="btn btn-primary" onclick="window.app.openAddFileModal()">
+                        <i data-lucide="file-plus"></i> Přidat soubor
+                    </button>
                 </div>
             </div>
             <table class="file-list">
@@ -698,24 +712,35 @@
 
     <div id="modal-file" class="modal-overlay">
         <div class="modal">
-            <h2>Přidat soubor</h2>
+            <h2 id="modal-file-title">Přidat soubor</h2>
             <form id="form-file" onsubmit="window.app.handleFileSubmit(event)">
+                <input type="hidden" id="file-id" value="">
                 <div class="form-group">
                     <label for="file-name">Název souboru *</label>
                     <input type="text" id="file-name" required placeholder="Např. Hlavní model">
                 </div>
                 <div class="form-group">
-                    <label for="file-input">Vybrat Rhino soubor (.3dm) *</label>
-                    <input type="file" id="file-input" accept=".3dm" required>
+                    <label>Typ zdroje *</label>
+                    <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: normal; color: var(--text-primary);">
+                            <input type="radio" name="file-source-type" value="local" checked onchange="window.app.toggleFileSourceType()"> Lokální soubor
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: normal; color: var(--text-primary);">
+                            <input type="radio" name="file-source-type" value="url" onchange="window.app.toggleFileSourceType()"> Firemní OneDrive (URL)
+                        </label>
+                    </div>
                 </div>
-                <!-- Hidden URL logic for later -->
-                <div class="form-group" style="display: none;">
-                    <label for="file-url">URL</label>
+                <div class="form-group" id="group-file-input">
+                    <label for="file-input">Vybrat soubor (.3dm, .skp) *</label>
+                    <input type="file" id="file-input" accept=".3dm,.skp" required>
+                </div>
+                <div class="form-group" id="group-file-url" style="display: none;">
+                    <label for="file-url">URL *</label>
                     <input type="url" id="file-url" placeholder="https://...">
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="window.app.closeModals()">Zrušit</button>
-                    <button type="submit" class="btn btn-primary">Přidat</button>
+                    <button type="submit" class="btn btn-primary" id="btn-file-submit">Přidat</button>
                 </div>
             </form>
         </div>
@@ -847,6 +872,56 @@
                     console.error(err);
                     loading.style.display = 'none';
                     error.style.display = 'flex';
+                }
+            }
+
+            buildFetchUrl(originalUrl) {
+                // Logic for OneDrive / Proxy discussed earlier
+                // E.g. converting share link to download link or using a proxy
+                return originalUrl;
+            }
+
+            async loadFromUrl(url, name) {
+                const loading = document.getElementById('viewer-loading');
+                const error = document.getElementById('viewer-error');
+                const filename = document.getElementById('viewer-filename');
+                
+                loading.style.display = 'flex';
+                error.style.display = 'none';
+                filename.textContent = name || 'Načítání z URL...';
+
+                if (this.model) {
+                    this.scene.remove(this.model);
+                    this.model = null;
+                }
+
+                try {
+                    const fetchUrl = this.buildFetchUrl(url);
+                    const response = await fetch(fetchUrl);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const buffer = await response.arrayBuffer();
+                    
+                    this.loader.parse(buffer, (object) => {
+                        this.model = object;
+                        this.model.rotation.x = -Math.PI / 2;
+                        this.applyMaterials();
+                        this.scene.add(this.model);
+                        this.resetCamera();
+                        this.extractNamedViews(object);
+                        loading.style.display = 'none';
+                        filename.textContent = name || url.split('/').pop();
+                        if (window.lucide) window.lucide.createIcons();
+                    }, (err) => {
+                        console.error(err);
+                        loading.style.display = 'none';
+                        error.style.display = 'flex';
+                        document.getElementById('error-message').textContent = 'Chyba při zpracování modelu.';
+                    });
+                } catch (err) {
+                    console.error(err);
+                    loading.style.display = 'none';
+                    error.style.display = 'flex';
+                    document.getElementById('error-message').textContent = 'Chyba při stahování modelu z URL.';
                 }
             }
 
@@ -1157,7 +1232,15 @@
 
                 this.switchView('view-viewer');
                 
-                if (file.localFile) {
+                if (file.sourceType === 'url' && file.url) {
+                    if (window.viewer) {
+                        window.viewer.loadFromUrl(file.url, file.name);
+                    } else {
+                        setTimeout(() => {
+                            if (window.viewer) window.viewer.loadFromUrl(file.url, file.name);
+                        }, 100);
+                    }
+                } else if (file.localFile) {
                     if (window.viewer) {
                         window.viewer.loadFile(file.localFile);
                     } else {
@@ -1168,12 +1251,23 @@
                     }
                 } else {
                     document.getElementById('viewer-error').style.display = 'flex';
-                    document.getElementById('error-message').textContent = "Lokální soubor není k dispozici (vyberte jej znovu v projektu).";
+                    document.getElementById('error-message').textContent = "Soubor není k dispozici (vyberte jej znovu v projektu).";
                 }
             }
 
             switchView(viewId) {
                 document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                
+                const headerCenterText = document.getElementById('header-center-text');
+                const headerActions = document.getElementById('header-actions');
+                if (viewId === 'view-dashboard') {
+                    if (headerCenterText) headerCenterText.style.display = 'block';
+                    if (headerActions) headerActions.style.display = 'block';
+                } else {
+                    if (headerCenterText) headerCenterText.style.display = 'none';
+                    if (headerActions) headerActions.style.display = 'none';
+                }
+
                 setTimeout(() => {
                     document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
                     const target = document.getElementById(viewId);
@@ -1278,28 +1372,98 @@
             }
 
             // File Logic
+            toggleFileSourceType() {
+                const sourceType = document.querySelector('input[name="file-source-type"]:checked').value;
+                if (sourceType === 'local') {
+                    document.getElementById('group-file-input').style.display = 'block';
+                    document.getElementById('file-input').required = true;
+                    document.getElementById('group-file-url').style.display = 'none';
+                    document.getElementById('file-url').required = false;
+                } else {
+                    document.getElementById('group-file-input').style.display = 'none';
+                    document.getElementById('file-input').required = false;
+                    document.getElementById('group-file-url').style.display = 'block';
+                    document.getElementById('file-url').required = true;
+                }
+            }
+
             openAddFileModal() {
+                document.getElementById('modal-file-title').textContent = 'Přidat soubor';
                 document.getElementById('form-file').reset();
+                document.getElementById('file-id').value = '';
+                document.querySelector('input[name="file-source-type"][value="local"]').checked = true;
+                this.toggleFileSourceType();
+                this.showModal('modal-file');
+            }
+
+            openEditFileModal(fileId) {
+                const project = this.projects.find(p => p.id === this.currentProjectId);
+                const file = project.files.find(f => f.id === fileId);
+                if (!file) return;
+
+                document.getElementById('modal-file-title').textContent = 'Upravit soubor';
+                document.getElementById('form-file').reset();
+                document.getElementById('file-id').value = file.id;
+                document.getElementById('file-name').value = file.name;
+                
+                const sourceType = file.sourceType || (file.url ? 'url' : 'local');
+                document.querySelector(`input[name="file-source-type"][value="${sourceType}"]`).checked = true;
+                this.toggleFileSourceType();
+
+                if (sourceType === 'url') {
+                    document.getElementById('file-url').value = file.url || '';
+                }
+
                 this.showModal('modal-file');
             }
 
             handleFileSubmit(e) {
                 e.preventDefault();
+                const fileId = document.getElementById('file-id').value;
                 const name = document.getElementById('file-name').value;
-                const fileInput = document.getElementById('file-input');
-                const file = fileInput.files[0];
-
-                if (!file) return;
-
+                const sourceType = document.querySelector('input[name="file-source-type"]:checked').value;
+                
                 const projectIndex = this.projects.findIndex(p => p.id === this.currentProjectId);
-                const newFile = {
-                    id: Date.now().toString(),
+                
+                let fileData = {
                     name,
-                    type: '3dm',
-                    localFile: file
+                    sourceType,
+                    type: '3dm' // Defaulting to 3dm for now, could be derived from extension
                 };
 
-                this.projects[projectIndex].files.push(newFile);
+                if (sourceType === 'local') {
+                    const fileInput = document.getElementById('file-input');
+                    if (fileInput.files.length > 0) {
+                        fileData.localFile = fileInput.files[0];
+                        fileData.type = fileInput.files[0].name.split('.').pop().toLowerCase();
+                    } else if (!fileId) {
+                        return; // Required for new local file
+                    }
+                } else {
+                    fileData.url = document.getElementById('file-url').value;
+                    fileData.type = fileData.url.split('.').pop().toLowerCase() === 'skp' ? 'skp' : '3dm';
+                }
+
+                if (fileId) {
+                    // Edit existing
+                    const fileIndex = this.projects[projectIndex].files.findIndex(f => f.id === fileId);
+                    if (fileIndex !== -1) {
+                        // Preserve localFile if not updated
+                        if (sourceType === 'local' && !fileData.localFile) {
+                            fileData.localFile = this.projects[projectIndex].files[fileIndex].localFile;
+                            fileData.type = this.projects[projectIndex].files[fileIndex].type;
+                        }
+                        this.projects[projectIndex].files[fileIndex] = {
+                            ...this.projects[projectIndex].files[fileIndex],
+                            ...fileData
+                        };
+                    }
+                } else {
+                    // Add new
+                    fileData.id = Date.now().toString();
+                    this.projects[projectIndex].files.push(fileData);
+                }
+
                 this.projects[projectIndex].modified = new Date().toISOString();
                 
                 this.save();
@@ -1372,6 +1536,9 @@
                 project.files.forEach(f => {
                     const row = document.createElement('tr');
                     row.className = 'file-row';
+                    
+                    const sourceTypeDisplay = f.sourceType === 'url' ? (f.url ? f.url.substring(0, 30) + (f.url.length > 30 ? '...' : '') : 'URL') : 'Lokální soubor';
+                    
                     row.innerHTML = `
                         <td>
                             <div class="file-type-icon" title="${f.type.toUpperCase()}">
@@ -1383,12 +1550,15 @@
                             <div style="font-size: 0.75rem; color: var(--text-secondary);">${f.type.toUpperCase()} Model</div>
                         </td>
                         <td>
-                            <div class="file-url">${f.localFile ? f.localFile.name : 'Lokální soubor'}</div>
+                            <div class="file-url" title="${f.url || 'Lokální soubor'}">${sourceTypeDisplay}</div>
                         </td>
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
                                 <button class="btn btn-secondary btn-icon" onclick="window.app.showViewer('${f.id}')" title="Zobrazit">
                                     <i data-lucide="eye"></i>
+                                </button>
+                                <button class="btn btn-secondary btn-icon" onclick="window.app.openEditFileModal('${f.id}')" title="Upravit">
+                                    <i data-lucide="edit-2"></i>
                                 </button>
                                 <button class="btn btn-secondary btn-icon btn-danger" onclick="window.app.deleteFile('${f.id}')" title="Smazat">
                                     <i data-lucide="trash-2"></i>
